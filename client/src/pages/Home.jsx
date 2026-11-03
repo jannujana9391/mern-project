@@ -3,28 +3,26 @@ import { Link } from 'react-router-dom';
 import { 
   Sparkles, 
   ArrowRight, 
-  Star, 
-  ShoppingBag, 
   Store, 
-  ShieldCheck, 
-  Laptop, 
-  Shirt, 
-  Home as HomeIcon, 
-  HeartHandshake, 
-  Activity,
-  CheckCircle2,
-  AlertCircle
+  Activity, 
+  CheckCircle2, 
+  AlertCircle,
+  Truck,
+  ShieldCheck,
+  CreditCard,
+  Headphones,
+  SlidersHorizontal,
+  Flame
 } from 'lucide-react';
+import HeroSlider from '../components/HeroSlider';
+import FlashDeals from '../components/FlashDeals';
+import CategoryGrid from '../components/CategoryGrid';
+import ProductCard from '../components/ProductCard';
+import VendorSpotlight from '../components/VendorSpotlight';
+import Testimonials from '../components/Testimonials';
 import { checkHealth } from '../services/api';
 
-const categories = [
-  { id: 'electronics', name: 'Electronics & Gadgets', icon: <Laptop className="w-6 h-6" />, count: '1,420+ items', color: 'bg-blue-500/10 text-blue-600' },
-  { id: 'fashion', name: 'Fashion & Apparel', icon: <Shirt className="w-6 h-6" />, count: '2,850+ items', color: 'bg-purple-500/10 text-purple-600' },
-  { id: 'home', name: 'Home & Kitchen', icon: <HomeIcon className="w-6 h-6" />, count: '980+ items', color: 'bg-emerald-500/10 text-emerald-600' },
-  { id: 'beauty', name: 'Beauty & Wellness', icon: <HeartHandshake className="w-6 h-6" />, count: '640+ items', color: 'bg-rose-500/10 text-rose-600' },
-];
-
-const initialProducts = [
+const featuredProducts = [
   {
     id: 1,
     name: 'AeroPro Wireless Noise-Cancelling Headphones',
@@ -35,7 +33,7 @@ const initialProducts = [
     rating: 4.8,
     reviews: 128,
     image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format&fit=crop&q=80',
-    tag: 'Best Seller',
+    stock: 24,
   },
   {
     id: 2,
@@ -47,7 +45,7 @@ const initialProducts = [
     rating: 4.6,
     reviews: 84,
     image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=80',
-    tag: 'Popular',
+    stock: 18,
   },
   {
     id: 3,
@@ -59,7 +57,7 @@ const initialProducts = [
     rating: 4.9,
     reviews: 215,
     image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=600&auto=format&fit=crop&q=80',
-    tag: 'Handmade',
+    stock: 12,
   },
   {
     id: 4,
@@ -71,14 +69,64 @@ const initialProducts = [
     rating: 4.7,
     reviews: 62,
     image: 'https://images.unsplash.com/photo-1580481077195-c22ae2426372?w=600&auto=format&fit=crop&q=80',
-    tag: 'Featured',
+    stock: 8,
+  },
+  {
+    id: 5,
+    name: 'Mechanical Gaming Keyboard RGB Backlit',
+    price: 79.99,
+    originalPrice: 99.99,
+    category: 'Electronics',
+    vendor: 'SoundWave Technologies',
+    rating: 4.5,
+    reviews: 94,
+    image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=600&auto=format&fit=crop&q=80',
+    stock: 30,
+  },
+  {
+    id: 6,
+    name: 'Organic Botanical Skincare Rejuvenation Set',
+    price: 58.00,
+    originalPrice: 75.00,
+    category: 'Beauty',
+    vendor: 'PureFlora Organics',
+    rating: 4.9,
+    reviews: 142,
+    image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=600&auto=format&fit=crop&q=80',
+    stock: 45,
+  },
+  {
+    id: 7,
+    name: 'Classic Vintage Denim Jacket Unisex',
+    price: 68.00,
+    originalPrice: 85.00,
+    category: 'Fashion',
+    vendor: 'Artisan Crafts Co.',
+    rating: 4.4,
+    reviews: 57,
+    image: 'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=600&auto=format&fit=crop&q=80',
+    stock: 19,
+  },
+  {
+    id: 8,
+    name: 'Smart Ambient Desk Lamp with Wireless Charging',
+    price: 49.99,
+    originalPrice: 69.99,
+    category: 'Home & Office',
+    vendor: 'ErgoComfort Living',
+    rating: 4.6,
+    reviews: 73,
+    image: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=600&auto=format&fit=crop&q=80',
+    stock: 22,
   },
 ];
 
 const Home = () => {
   const [healthData, setHealthData] = useState(null);
   const [healthLoading, setHealthLoading] = useState(true);
-  const [addedItem, setAddedItem] = useState(null);
+  const [toastMessage, setToastMessage] = useState(null);
+  const [wishlist, setWishlist] = useState([]);
+  const [activeTab, setActiveTab] = useState('All');
 
   useEffect(() => {
     const fetchHealth = async () => {
@@ -95,109 +143,52 @@ const Home = () => {
   }, []);
 
   const handleAddToCart = (product) => {
-    setAddedItem(product.name);
-    setTimeout(() => setAddedItem(null), 3000);
+    setToastMessage({
+      type: 'cart',
+      text: `Added "${product.name}" to shopping cart!`,
+    });
+    setTimeout(() => setToastMessage(null), 3000);
   };
 
+  const handleToggleWishlist = (product) => {
+    if (wishlist.includes(product.id)) {
+      setWishlist(wishlist.filter((id) => id !== product.id));
+      setToastMessage({
+        type: 'wishlist',
+        text: `Removed "${product.name}" from wishlist.`,
+      });
+    } else {
+      setWishlist([...wishlist, product.id]);
+      setToastMessage({
+        type: 'wishlist',
+        text: `Saved "${product.name}" to your wishlist!`,
+      });
+    }
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  // Filter products by selected tab
+  const filteredProducts = activeTab === 'All' 
+    ? featuredProducts 
+    : featuredProducts.filter((p) => p.category.toLowerCase().includes(activeTab.toLowerCase()));
+
   return (
-    <div className="space-y-12 pb-16">
+    <div className="space-y-12 sm:space-y-16 pb-16">
       {/* Toast Notification */}
-      {addedItem && (
-        <div className="fixed bottom-6 right-6 z-50 bg-primary text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center space-x-3 border border-slate-700 animate-bounce">
-          <CheckCircle2 className="w-5 h-5 text-accent" />
-          <span className="text-sm font-semibold">Added "{addedItem}" to Cart!</span>
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-primary text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center space-x-3 border border-slate-700 animate-bounce">
+          <CheckCircle2 className="w-5 h-5 text-accent shrink-0" />
+          <span className="text-xs sm:text-sm font-semibold">{toastMessage.text}</span>
         </div>
       )}
 
-      {/* Hero Section */}
-      <section className="bg-gradient-to-r from-primary via-slate-900 to-slate-950 text-white relative overflow-hidden">
-        {/* Background Ambient Glows */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-secondary/20 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-accent/15 rounded-full blur-3xl pointer-events-none"></div>
+      {/* Main Container */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12 sm:space-y-16 pt-6">
+        {/* 1. Hero Promotional Banner Slider */}
+        <HeroSlider />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/30 text-purple-200 border border-secondary/40 text-xs font-semibold tracking-wide">
-                <Sparkles className="w-3.5 h-3.5 text-accent" /> Multi-Vendor Marketplace Platform
-              </div>
-
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight">
-                Shop Direct From <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent via-purple-300 to-secondary-light">
-                  Top Independent Vendors
-                </span>
-              </h1>
-
-              <p className="text-slate-300 text-base sm:text-lg leading-relaxed max-w-xl">
-                Experience unified shopping with split multi-vendor checkouts, verified merchant authenticity, and express worldwide delivery.
-              </p>
-
-              <div className="flex flex-wrap items-center gap-4 pt-2">
-                <Link
-                  to="/products"
-                  className="px-6 py-3.5 bg-gradient-to-r from-secondary to-purple-600 hover:from-purple-600 hover:to-secondary text-white font-bold rounded-xl shadow-lg shadow-secondary/30 transition-all flex items-center space-x-2"
-                >
-                  <span>Explore Catalog</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-
-                <Link
-                  to="/register"
-                  className="px-6 py-3.5 bg-slate-800/80 hover:bg-slate-700/80 text-white font-semibold rounded-xl border border-slate-700 transition-all flex items-center space-x-2"
-                >
-                  <Store className="w-4 h-4 text-accent" />
-                  <span>Open Vendor Store</span>
-                </Link>
-              </div>
-
-              {/* Trust Badges */}
-              <div className="pt-6 border-t border-slate-800/80 grid grid-cols-3 gap-4 text-slate-300 text-xs">
-                <div>
-                  <span className="block text-xl font-bold text-white">500+</span>
-                  <span className="text-slate-400">Verified Vendors</span>
-                </div>
-                <div>
-                  <span className="block text-xl font-bold text-white">10,000+</span>
-                  <span className="text-slate-400">Curated Products</span>
-                </div>
-                <div>
-                  <span className="block text-xl font-bold text-white">99.8%</span>
-                  <span className="text-slate-400">Positive Feedback</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Hero Image Showcase */}
-            <div className="relative">
-              <div className="relative rounded-3xl overflow-hidden border border-slate-800 shadow-2xl bg-slate-900/40 p-3">
-                <img
-                  src="https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=900&auto=format&fit=crop&q=80"
-                  alt="Marketplace showcase"
-                  className="rounded-2xl object-cover w-full h-[360px] sm:h-[420px]"
-                />
-                <div className="absolute bottom-6 left-6 right-6 bg-primary/90 backdrop-blur-md p-4 rounded-2xl border border-slate-700/80 flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-accent">Hot Pick</span>
-                    <h3 className="text-white font-bold text-sm">Next-Gen Audio & Wearables</h3>
-                    <p className="text-xs text-slate-400">Special seasonal discounts up to 40%</p>
-                  </div>
-                  <Link
-                    to="/products"
-                    className="p-2.5 bg-secondary hover:bg-secondary-light text-white rounded-xl transition-colors"
-                  >
-                    <ArrowRight className="w-5 h-5" />
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Live System Status Bar */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+        {/* 2. Live System Status Bar */}
+        <section className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center space-x-3">
             <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
               <Activity className="w-5 h-5" />
@@ -205,7 +196,7 @@ const Home = () => {
             <div>
               <h4 className="text-sm font-bold text-slate-900">MERN Stack Environment Status</h4>
               <p className="text-xs text-slate-500">
-                Phase 1 complete: Express server, React Router, Tailwind theme & database connection verified
+                Phase 2: Professional Homepage, Hero Banner, Flash Deals & Multi-Vendor Showcase
               </p>
             </div>
           </div>
@@ -228,134 +219,153 @@ const Home = () => {
               </span>
             )}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Featured Categories */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900">Explore Top Categories</h2>
-            <p className="text-sm text-slate-500">Shop curated items organized by department</p>
-          </div>
-          <Link to="/products" className="text-sm font-semibold text-secondary hover:text-secondary-dark flex items-center space-x-1">
-            <span>View All</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
+        {/* 3. Shop by Category Grid */}
+        <CategoryGrid />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {categories.map((cat) => (
-            <Link
-              key={cat.id}
-              to="/products"
-              className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md hover:border-secondary/40 transition-all group"
-            >
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${cat.color} mb-4 group-hover:scale-110 transition-transform`}>
-                {cat.icon}
-              </div>
-              <h3 className="font-bold text-slate-900 group-hover:text-secondary transition-colors">{cat.name}</h3>
-              <p className="text-xs text-slate-500 mt-1">{cat.count}</p>
-            </Link>
-          ))}
-        </div>
-      </section>
+        {/* 4. Flash Deals & Lightning Discounts */}
+        <FlashDeals onAddToCart={handleAddToCart} />
 
-      {/* Featured Products Showcase */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900">Featured Multi-Vendor Products</h2>
-            <p className="text-sm text-slate-500">Handpicked selections with certified merchant guarantees</p>
-          </div>
-          <Link to="/products" className="text-sm font-semibold text-secondary hover:text-secondary-dark flex items-center space-x-1">
-            <span>Browse All (10,000+)</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {initialProducts.map((product) => (
-            <div
-              key={product.id}
-              className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col justify-between group"
-            >
-              <div className="relative overflow-hidden bg-slate-100 h-52">
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <span className="absolute top-3 left-3 bg-primary text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow">
-                  {product.tag}
-                </span>
-                <span className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-slate-700 text-xs font-semibold px-2 py-0.5 rounded-full shadow-sm">
-                  {product.category}
+        {/* 5. Trending Multi-Vendor Products Section with Tabs */}
+        <section className="space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+            <div>
+              <div className="flex items-center space-x-2">
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight">Trending Marketplace Products</h2>
+                <span className="px-2.5 py-0.5 rounded-full bg-secondary/10 text-secondary text-xs font-bold uppercase tracking-wider">
+                  Top Picks
                 </span>
               </div>
-
-              <div className="p-5 flex-1 flex flex-col justify-between space-y-3">
-                <div className="space-y-1.5">
-                  {/* Vendor attribution badge */}
-                  <div className="flex items-center space-x-1.5 text-xs text-secondary font-semibold">
-                    <Store className="w-3.5 h-3.5" />
-                    <span className="truncate">{product.vendor}</span>
-                  </div>
-
-                  <h3 className="font-bold text-slate-900 text-sm line-clamp-2 leading-snug group-hover:text-primary transition-colors">
-                    {product.name}
-                  </h3>
-
-                  {/* Rating */}
-                  <div className="flex items-center space-x-1 text-xs text-amber-500 pt-1">
-                    <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                    <span className="font-bold text-slate-800">{product.rating}</span>
-                    <span className="text-slate-400">({product.reviews})</span>
-                  </div>
-                </div>
-
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                  <div>
-                    <div className="text-lg font-extrabold text-primary">${product.price.toFixed(2)}</div>
-                    <div className="text-xs text-slate-400 line-through">${product.originalPrice.toFixed(2)}</div>
-                  </div>
-
-                  <button
-                    onClick={() => handleAddToCart(product)}
-                    className="p-2.5 bg-primary hover:bg-secondary text-white rounded-xl transition-all shadow-sm hover:shadow active:scale-95"
-                    title="Add to Shopping Cart"
-                  >
-                    <ShoppingBag className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
+              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+                Authentic items shipped directly by independent certified merchants
+              </p>
             </div>
-          ))}
-        </div>
-      </section>
 
-      {/* Multi-Vendor Platform Banner */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-gradient-to-r from-secondary to-purple-800 rounded-3xl p-8 sm:p-12 text-white shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8">
+            {/* Category Filter Tabs */}
+            <div className="flex flex-wrap items-center gap-2">
+              {['All', 'Electronics', 'Fashion', 'Home', 'Beauty'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all ${
+                    activeTab === tab
+                      ? 'bg-secondary text-white shadow-sm'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Products Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {filteredProducts.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                onAddToCart={handleAddToCart}
+                onToggleWishlist={handleToggleWishlist}
+                isWishlisted={wishlist.includes(product.id)}
+              />
+            ))}
+          </div>
+
+          <div className="text-center pt-4">
+            <Link
+              to="/products"
+              className="inline-flex items-center space-x-2 px-8 py-3.5 bg-white hover:bg-primary text-slate-800 hover:text-white border border-slate-200 font-bold text-sm rounded-2xl shadow-sm hover:shadow transition-all"
+            >
+              <span>Explore All 10,000+ Marketplace Products</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </section>
+
+        {/* 6. Multi-Vendor Top Merchant Spotlight */}
+        <VendorSpotlight />
+
+        {/* 7. Marketplace Core Value Pillars */}
+        <section className="bg-gradient-to-r from-slate-900 via-primary to-slate-950 text-white rounded-3xl p-8 sm:p-12 shadow-xl border border-slate-800">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-secondary/20 text-secondary-light flex items-center justify-center">
+                <Truck className="w-6 h-6" />
+              </div>
+              <h3 className="font-extrabold text-white text-base">Free Global Delivery</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Enjoy free standard delivery on qualified merchant orders over $50 with live carrier tracking.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-accent/20 text-accent flex items-center justify-center">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <h3 className="font-extrabold text-white text-base">Escrow Buyer Protection</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Funds are securely held until you receive and verify the authenticity of your order.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-purple-500/20 text-purple-300 flex items-center justify-center">
+                <CreditCard className="w-6 h-6" />
+              </div>
+              <h3 className="font-extrabold text-white text-base">Multi-Vendor Checkout</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Add products from 10 different vendors and complete payment in a single unified transaction.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                <Headphones className="w-6 h-6" />
+              </div>
+              <h3 className="font-extrabold text-white text-base">24/7 Dedicated Support</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Round-the-clock dispute resolution and customer assistance for buyers and merchants.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* 8. Verified Community Testimonials */}
+        <Testimonials />
+
+        {/* 9. High-Converting Merchant Recruitment Banner */}
+        <section className="bg-gradient-to-r from-secondary via-purple-700 to-primary rounded-3xl p-8 sm:p-12 text-white shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 border border-purple-500/30">
           <div className="space-y-4 max-w-xl">
-            <span className="inline-block px-3 py-1 rounded-full bg-white/20 text-white text-xs font-bold uppercase tracking-wider">
-              Earn With Us
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 text-white text-xs font-bold uppercase tracking-wider backdrop-blur-sm">
+              <Store className="w-3.5 h-3.5 text-accent" />
+              Start Selling Today
             </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold leading-tight">
-              Grow Your Business as an Authorized Merchant
+            <h2 className="text-3xl sm:text-4xl font-black leading-tight">
+              Turn Your Brand Into a Global E-Commerce Powerhouse
             </h2>
             <p className="text-purple-100 text-sm sm:text-base leading-relaxed">
-              Reach millions of eager shoppers. Get a branded vendor storefront, live stock analytics, commission tracking, and seamless payout processing.
+              Join thousands of thriving independent merchants on NexStore. Benefit from low commission rates, automated multi-vendor order routing, and instant payouts.
             </p>
           </div>
-          <Link
-            to="/register"
-            className="px-8 py-4 bg-white text-secondary hover:bg-slate-100 font-extrabold rounded-2xl shadow-lg transition-all shrink-0"
-          >
-            Register as a Vendor
-          </Link>
-        </div>
-      </section>
+
+          <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0">
+            <Link
+              to="/register"
+              className="px-8 py-4 bg-white text-secondary hover:bg-slate-100 font-black rounded-2xl shadow-xl transition-all duration-200 active:scale-95 text-sm"
+            >
+              Open Your Vendor Store
+            </Link>
+            <Link
+              to="/about"
+              className="px-6 py-4 bg-purple-900/40 hover:bg-purple-900/60 text-white border border-purple-400/40 font-bold rounded-2xl transition-all duration-200 text-sm"
+            >
+              Learn More
+            </Link>
+          </div>
+        </section>
+      </div>
     </div>
   );
 };

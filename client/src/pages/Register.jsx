@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   Sparkles, 
   Mail, 
@@ -8,10 +8,16 @@ import {
   Store, 
   Briefcase, 
   ArrowRight, 
-  CheckCircle2 
+  CheckCircle2,
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const Register = () => {
+  const { register } = useAuth();
+  const navigate = useNavigate();
+
   const [role, setRole] = useState('customer'); // 'customer' or 'vendor'
   const [formData, setFormData] = useState({
     name: '',
@@ -19,20 +25,64 @@ const Register = () => {
     password: '',
     confirmPassword: '',
     storeName: '',
-    businessType: 'Electronics',
+    businessCategory: 'Consumer Electronics',
   });
-  const [statusMessage, setStatusMessage] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setStatusMessage({
-      type: 'success',
-      text: `Phase 1 Registration UI Verified! In Phase 4, your ${role.toUpperCase()} account will be registered into MongoDB with bcrypt-hashed passwords.`,
-    });
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    // Validation
+    if (formData.password !== formData.confirmPassword) {
+      setErrorMsg('Passwords do not match. Please verify.');
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setErrorMsg('Password must be at least 6 characters long.');
+      return;
+    }
+
+    if (role === 'vendor' && !formData.storeName.trim()) {
+      setErrorMsg('Store name is required for vendor registration.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const payload = {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        password: formData.password,
+        role,
+        ...(role === 'vendor' && {
+          storeName: formData.storeName.trim(),
+          businessCategory: formData.businessCategory,
+        }),
+      };
+
+      const result = await register(payload);
+      setSuccessMsg(`Welcome to NexStore, ${result.user.name}! Your account is active. Redirecting...`);
+      setTimeout(() => {
+        navigate('/');
+      }, 1500);
+    } catch (err) {
+      console.error('Registration Error:', err);
+      setErrorMsg(
+        err.response?.data?.message || err.message || 'Registration failed. Please check your information.'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -77,10 +127,18 @@ const Register = () => {
           </button>
         </div>
 
-        {statusMessage && (
-          <div className="p-4 rounded-xl bg-purple-50 border border-purple-200 text-xs text-purple-900 flex items-start space-x-2">
-            <CheckCircle2 className="w-4 h-4 text-secondary mt-0.5 shrink-0" />
-            <span>{statusMessage.text}</span>
+        {/* Error & Success Alerts */}
+        {errorMsg && (
+          <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-900 flex items-start space-x-2">
+            <AlertCircle className="w-4 h-4 text-rose-600 mt-0.5 shrink-0" />
+            <span>{errorMsg}</span>
+          </div>
+        )}
+
+        {successMsg && (
+          <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-start space-x-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
+            <span>{successMsg}</span>
           </div>
         )}
 
@@ -141,15 +199,15 @@ const Register = () => {
                 <div className="relative">
                   <Briefcase className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
                   <select
-                    name="businessType"
-                    value={formData.businessType}
+                    name="businessCategory"
+                    value={formData.businessCategory}
                     onChange={handleChange}
                     className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-secondary/40"
                   >
-                    <option value="Electronics">Consumer Electronics</option>
-                    <option value="Fashion">Fashion & Apparel</option>
+                    <option value="Consumer Electronics">Consumer Electronics & Audio</option>
+                    <option value="Fashion & Apparel">Fashion & Apparel</option>
                     <option value="Home & Living">Home & Living</option>
-                    <option value="Beauty">Beauty & Personal Care</option>
+                    <option value="Beauty & Skincare">Beauty & Personal Care</option>
                   </select>
                 </div>
               </div>
@@ -167,7 +225,7 @@ const Register = () => {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  placeholder="••••••••"
+                  placeholder="Min 6 characters"
                   className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-secondary/40"
                 />
               </div>
@@ -183,7 +241,7 @@ const Register = () => {
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  placeholder="••••••••"
+                  placeholder="Confirm password"
                   className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-secondary/40"
                 />
               </div>
@@ -192,10 +250,20 @@ const Register = () => {
 
           <button
             type="submit"
-            className="w-full py-3 bg-gradient-to-r from-secondary to-accent hover:opacity-90 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center space-x-2 text-sm mt-2"
+            disabled={loading}
+            className="w-full py-3 bg-gradient-to-r from-secondary to-accent hover:opacity-90 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center space-x-2 text-sm mt-2 disabled:opacity-60"
           >
-            <span>Create {role === 'vendor' ? 'Vendor Store' : 'Customer Account'}</span>
-            <ArrowRight className="w-4 h-4" />
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Creating Account in MongoDB...</span>
+              </>
+            ) : (
+              <>
+                <span>Create {role === 'vendor' ? 'Vendor Store' : 'Customer Account'}</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
           </button>
         </form>
 
@@ -211,4 +279,3 @@ const Register = () => {
 };
 
 export default Register;
-

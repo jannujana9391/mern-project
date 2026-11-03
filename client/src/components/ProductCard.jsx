@@ -140,3 +140,4 @@ const ProductCard = ({ product, onAddToCart, onToggleWishlist, isWishlisted = fa
 };
 
 export default ProductCard;
+

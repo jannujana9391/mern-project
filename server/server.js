@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import morgan from 'morgan';
 import mongoose from 'mongoose';
 import connectDB from './config/db.js';
+import authRoutes from './routes/authRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -27,11 +28,14 @@ app.use(
   })
 );
 
+// Mount API Routes
+app.use('/api/auth', authRoutes);
+
 // GET /api/health - Endpoint to verify backend and database status
 app.get('/api/health', (req, res) => {
   const dbState = mongoose.connection.readyState;
   const dbStatusMap = {
-    0: 'disconnected (Ready for Phase 3)',
+    0: 'disconnected',
     1: 'connected',
     2: 'connecting',
     3: 'disconnecting',
@@ -49,7 +53,7 @@ app.get('/api/health', (req, res) => {
       readyState: dbState,
     },
     services: {
-      auth: 'Configured for Phase 4',
+      auth: 'Active & Verified',
       products: 'Configured for Phase 7',
       orders: 'Configured for Phase 9',
     },
@@ -96,6 +100,7 @@ app.listen(PORT, () => {
   console.log(`  Port: ${PORT}`);
   console.log(`  Mode: ${process.env.NODE_ENV || 'development'}`);
   console.log(`  Health Check: http://localhost:${PORT}/api/health`);
+  console.log(`  Auth API: http://localhost:${PORT}/api/auth`);
   console.log(`====================================================`);
 });
 

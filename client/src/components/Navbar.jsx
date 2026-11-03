@@ -9,12 +9,16 @@ import {
   User,
   Store,
   ShieldCheck,
+  LogOut,
   ChevronDown,
   Sparkles,
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
+  const { user, isAuthenticated, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const location = useLocation();
 
@@ -26,6 +30,17 @@ const Navbar = () => {
   ];
 
   const isActive = (path) => location.pathname === path;
+
+  const getRoleBadge = (role) => {
+    switch (role) {
+      case 'admin':
+        return { label: 'Admin', color: 'bg-rose-50 text-rose-700 border-rose-200' };
+      case 'vendor':
+        return { label: 'Vendor', color: 'bg-purple-50 text-secondary border-purple-200' };
+      default:
+        return { label: 'Customer', color: 'bg-cyan-50 text-cyan-800 border-cyan-200' };
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
@@ -39,9 +54,16 @@ const Navbar = () => {
             <span>Discover thousands of verified products from independent vendors worldwide!</span>
           </div>
           <div className="flex items-center space-x-4 text-slate-300 text-xs">
-            <Link to="/register" className="hover:text-accent flex items-center gap-1 transition-colors">
-              <Store className="w-3.5 h-3.5 text-accent" /> Become a Vendor
-            </Link>
+            {!isAuthenticated && (
+              <Link to="/register" className="hover:text-accent flex items-center gap-1 transition-colors">
+                <Store className="w-3.5 h-3.5 text-accent" /> Become a Vendor
+              </Link>
+            )}
+            {isAuthenticated && (
+              <span className="text-accent flex items-center gap-1">
+                <Sparkles className="w-3.5 h-3.5" /> Authenticated as {user?.name}
+              </span>
+            )}
             <span className="text-slate-600">|</span>
             <span className="text-slate-400">24/7 Support: support@nexstore.com</span>
           </div>
@@ -115,21 +137,98 @@ const Navbar = () => {
               </span>
             </Link>
 
-            {/* Auth Buttons */}
-            <div className="hidden sm:flex items-center space-x-2 pl-2 border-l border-slate-200">
-              <Link
-                to="/login"
-                className="px-4 py-2 text-sm font-semibold text-slate-700 hover:text-primary transition-colors"
-              >
-                Sign In
-              </Link>
-              <Link
-                to="/register"
-                className="px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-secondary to-purple-700 hover:from-purple-700 hover:to-secondary rounded-xl shadow-sm hover:shadow transition-all"
-              >
-                Get Started
-              </Link>
-            </div>
+            {/* User Profile / Auth Action */}
+            {isAuthenticated && user ? (
+              <div className="relative pl-2 border-l border-slate-200">
+                <button
+                  onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                  className="flex items-center space-x-2.5 p-1.5 rounded-xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-200"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-secondary to-accent flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                    {user.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="hidden sm:block text-left">
+                    <span className="block text-xs font-bold text-slate-900 truncate max-w-[100px]">
+                      {user.name}
+                    </span>
+                    <span
+                      className={`inline-block px-1.5 py-0.2 text-[10px] font-extrabold uppercase rounded border ${
+                        getRoleBadge(user.role).color
+                      }`}
+                    >
+                      {getRoleBadge(user.role).label}
+                    </span>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-slate-400 hidden sm:block" />
+                </button>
+
+                {/* Dropdown Menu */}
+                {isUserDropdownOpen && (
+                  <div
+                    onMouseLeave={() => setIsUserDropdownOpen(false)}
+                    className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 z-50 animate-fadeIn"
+                  >
+                    <div className="px-4 py-2 border-b border-slate-100">
+                      <p className="text-xs font-bold text-slate-900 truncate">{user.name}</p>
+                      <p className="text-[11px] text-slate-400 truncate">{user.email}</p>
+                    </div>
+
+                    <div className="py-1">
+                      <Link
+                        to="/login"
+                        onClick={() => setIsUserDropdownOpen(false)}
+                        className="px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-purple-50 hover:text-secondary flex items-center space-x-2"
+                      >
+                        <User className="w-4 h-4" />
+                        <span>Account Overview</span>
+                      </Link>
+
+                      {user.role === 'vendor' && (
+                        <div className="px-4 py-1.5 text-[11px] font-bold text-secondary bg-purple-50/60 mx-2 rounded-lg flex items-center gap-1.5 my-1">
+                          <Store className="w-3.5 h-3.5" />
+                          <span>Store: {user.vendor?.storeName || 'My Vendor Shop'}</span>
+                        </div>
+                      )}
+
+                      {user.role === 'admin' && (
+                        <div className="px-4 py-1.5 text-[11px] font-bold text-rose-700 bg-rose-50 mx-2 rounded-lg flex items-center gap-1.5 my-1">
+                          <ShieldCheck className="w-3.5 h-3.5" />
+                          <span>Admin Control Center</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pt-1 border-t border-slate-100">
+                      <button
+                        onClick={() => {
+                          logout();
+                          setIsUserDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 flex items-center space-x-2"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span>Sign Out</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="hidden sm:flex items-center space-x-2 pl-2 border-l border-slate-200">
+                <Link
+                  to="/login"
+                  className="px-4 py-2 text-sm font-semibold text-slate-700 hover:text-primary transition-colors"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  to="/register"
+                  className="px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-secondary to-purple-700 hover:from-purple-700 hover:to-secondary rounded-xl shadow-sm hover:shadow transition-all"
+                >
+                  Get Started
+                </Link>
+              </div>
+            )}
 
             {/* Mobile Menu Button */}
             <button
@@ -163,7 +262,7 @@ const Navbar = () => {
           <div className="flex items-center space-x-4 text-xs font-semibold text-slate-500">
             <span className="inline-flex items-center gap-1.5 bg-slate-100 px-3 py-1 rounded-full text-slate-700">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              Platform Status: Ready (Phase 1)
+              Auth System: JWT & MongoDB Active
             </span>
           </div>
         </nav>
@@ -200,20 +299,35 @@ const Navbar = () => {
           </div>
 
           <div className="pt-3 border-t border-slate-100 flex flex-col space-y-2">
-            <Link
-              to="/login"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="w-full text-center py-2.5 text-sm font-semibold text-slate-800 bg-slate-100 rounded-xl"
-            >
-              Sign In
-            </Link>
-            <Link
-              to="/register"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="w-full text-center py-2.5 text-sm font-semibold text-white bg-secondary hover:bg-secondary-dark rounded-xl"
-            >
-              Create Account / Vendor Signup
-            </Link>
+            {isAuthenticated ? (
+              <button
+                onClick={() => {
+                  logout();
+                  setIsMobileMenuOpen(false);
+                }}
+                className="w-full text-center py-2.5 text-sm font-bold text-rose-600 bg-rose-50 rounded-xl flex items-center justify-center space-x-1"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sign Out ({user?.name})</span>
+              </button>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="w-full text-center py-2.5 text-sm font-semibold text-slate-800 bg-slate-100 rounded-xl"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  to="/register"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="w-full text-center py-2.5 text-sm font-semibold text-white bg-secondary hover:bg-secondary-dark rounded-xl"
+                >
+                  Create Account / Vendor Signup
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -222,4 +336,3 @@ const Navbar = () => {
 };
 
 export default Navbar;
-

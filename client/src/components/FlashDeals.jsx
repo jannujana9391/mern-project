@@ -202,3 +202,4 @@ const FlashDeals = ({ onAddToCart }) => {
 };
 
 export default FlashDeals;
+

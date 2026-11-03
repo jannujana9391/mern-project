@@ -66,3 +66,4 @@ const CategoryGrid = () => {
 };
 
 export default CategoryGrid;
+

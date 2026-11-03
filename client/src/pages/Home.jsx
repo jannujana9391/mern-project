@@ -21,6 +21,7 @@ import ProductCard from '../components/ProductCard';
 import VendorSpotlight from '../components/VendorSpotlight';
 import Testimonials from '../components/Testimonials';
 import { checkHealth } from '../services/api';
+import { useCart } from '../context/CartContext';
 
 const featuredProducts = [
   {
@@ -122,6 +123,7 @@ const featuredProducts = [
 ];
 
 const Home = () => {
+  const { addToCart } = useCart();
   const [healthData, setHealthData] = useState(null);
   const [healthLoading, setHealthLoading] = useState(true);
   const [toastMessage, setToastMessage] = useState(null);
@@ -143,6 +145,7 @@ const Home = () => {
   }, []);
 
   const handleAddToCart = (product) => {
+    addToCart(product);
     setToastMessage({
       type: 'cart',
       text: `Added "${product.name}" to shopping cart!`,

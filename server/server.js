@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import mongoose from 'mongoose';
 import connectDB from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
+import orderRoutes from './routes/orderRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -30,6 +31,7 @@ app.use(
 
 // Mount API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/orders', orderRoutes);
 
 // GET /api/health - Endpoint to verify backend and database status
 app.get('/api/health', (req, res) => {
@@ -54,8 +56,8 @@ app.get('/api/health', (req, res) => {
     },
     services: {
       auth: 'Active & Verified',
+      orders: 'Active & Verified',
       products: 'Configured for Phase 7',
-      orders: 'Configured for Phase 9',
     },
   });
 });
@@ -69,9 +71,9 @@ app.get('/api', (req, res) => {
     endpoints: {
       health: '/api/health',
       auth: '/api/auth',
+      orders: '/api/orders',
       products: '/api/products',
       categories: '/api/categories',
-      orders: '/api/orders',
     },
   });
 });
@@ -101,6 +103,7 @@ app.listen(PORT, () => {
   console.log(`  Mode: ${process.env.NODE_ENV || 'development'}`);
   console.log(`  Health Check: http://localhost:${PORT}/api/health`);
   console.log(`  Auth API: http://localhost:${PORT}/api/auth`);
+  console.log(`  Orders API: http://localhost:${PORT}/api/orders`);
   console.log(`====================================================`);
 });
 

@@ -12,11 +12,14 @@ import {
   LogOut,
   ChevronDown,
   Sparkles,
+  LayoutDashboard,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 
 const Navbar = () => {
   const { user, isAuthenticated, logout } = useAuth();
+  const { totalItems } = useCart();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -60,9 +63,9 @@ const Navbar = () => {
               </Link>
             )}
             {isAuthenticated && (
-              <span className="text-accent flex items-center gap-1">
+              <Link to="/dashboard" className="text-accent flex items-center gap-1 hover:underline">
                 <Sparkles className="w-3.5 h-3.5" /> Authenticated as {user?.name}
-              </span>
+              </Link>
             )}
             <span className="text-slate-600">|</span>
             <span className="text-slate-400">24/7 Support: support@nexstore.com</span>
@@ -125,15 +128,17 @@ const Navbar = () => {
               </span>
             </Link>
 
-            {/* Cart Link */}
+            {/* Shopping Cart Link */}
             <Link
-              to="/products"
+              to="/cart"
               title="Shopping Cart"
               className="relative p-2.5 text-slate-600 hover:text-accent hover:bg-cyan-50 rounded-xl transition-all"
             >
               <ShoppingBag className="w-5 h-5" />
-              <span className="absolute top-1 right-1 w-4 h-4 bg-accent text-slate-900 text-[10px] font-bold rounded-full flex items-center justify-center">
-                0
+              <span className={`absolute top-1 right-1 w-5 h-5 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm transition-transform ${
+                totalItems > 0 ? 'bg-secondary scale-110' : 'bg-slate-400'
+              }`}>
+                {totalItems}
               </span>
             </Link>
 
@@ -166,7 +171,7 @@ const Navbar = () => {
                 {isUserDropdownOpen && (
                   <div
                     onMouseLeave={() => setIsUserDropdownOpen(false)}
-                    className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 z-50 animate-fadeIn"
+                    className="absolute right-0 mt-2 w-60 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 z-50 animate-fadeIn"
                   >
                     <div className="px-4 py-2 border-b border-slate-100">
                       <p className="text-xs font-bold text-slate-900 truncate">{user.name}</p>
@@ -175,12 +180,21 @@ const Navbar = () => {
 
                     <div className="py-1">
                       <Link
-                        to="/login"
+                        to="/dashboard"
                         onClick={() => setIsUserDropdownOpen(false)}
                         className="px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-purple-50 hover:text-secondary flex items-center space-x-2"
                       >
-                        <User className="w-4 h-4" />
-                        <span>Account Overview</span>
+                        <LayoutDashboard className="w-4 h-4" />
+                        <span>Customer Dashboard</span>
+                      </Link>
+
+                      <Link
+                        to="/cart"
+                        onClick={() => setIsUserDropdownOpen(false)}
+                        className="px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-purple-50 hover:text-secondary flex items-center space-x-2"
+                      >
+                        <ShoppingBag className="w-4 h-4" />
+                        <span>My Cart ({totalItems})</span>
                       </Link>
 
                       {user.role === 'vendor' && (
@@ -260,10 +274,13 @@ const Navbar = () => {
           </div>
 
           <div className="flex items-center space-x-4 text-xs font-semibold text-slate-500">
-            <span className="inline-flex items-center gap-1.5 bg-slate-100 px-3 py-1 rounded-full text-slate-700">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              Auth System: JWT & MongoDB Active
-            </span>
+            <Link
+              to="/cart"
+              className="inline-flex items-center gap-1.5 bg-slate-100 px-3 py-1 rounded-full text-slate-700 hover:bg-slate-200 transition-colors"
+            >
+              <ShoppingBag className="w-3.5 h-3.5 text-secondary" />
+              <span>Cart: <strong>{totalItems} items</strong> (${subtotal.toFixed(2)})</span>
+            </Link>
           </div>
         </nav>
       </div>
@@ -296,6 +313,26 @@ const Navbar = () => {
                 {link.name}
               </Link>
             ))}
+            <Link
+              to="/cart"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 flex items-center justify-between"
+            >
+              <span>Shopping Cart</span>
+              <span className="px-2 py-0.5 rounded-full bg-secondary text-white text-xs font-bold">
+                {totalItems}
+              </span>
+            </Link>
+            {isAuthenticated && (
+              <Link
+                to="/dashboard"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 flex items-center space-x-2"
+              >
+                <LayoutDashboard className="w-4 h-4 text-secondary" />
+                <span>Customer Dashboard</span>
+              </Link>
+            )}
           </div>
 
           <div className="pt-3 border-t border-slate-100 flex flex-col space-y-2">

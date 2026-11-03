@@ -9,6 +9,7 @@ import {
   SlidersHorizontal,
   CheckCircle2
 } from 'lucide-react';
+import { useCart } from '../context/CartContext';
 
 const allProducts = [
   {
@@ -112,6 +113,7 @@ const allProducts = [
 const categories = ['All', 'Electronics', 'Fashion', 'Home & Office', 'Beauty'];
 
 const Products = () => {
+  const { addToCart } = useCart();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [sortBy, setSortBy] = useState('featured');
   const [searchTerm, setSearchTerm] = useState('');
@@ -136,6 +138,7 @@ const Products = () => {
   });
 
   const handleAddToCart = (product) => {
+    addToCart(product);
     setAddedItem(product.name);
     setTimeout(() => setAddedItem(null), 3000);
   };

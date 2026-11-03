@@ -11,3 +11,4 @@ router.get('/', getCategories);
 router.post('/', protect, authorize('admin', 'vendor'), createCategory);
 
 export default router;
+

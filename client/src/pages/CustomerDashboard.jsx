@@ -229,14 +229,19 @@ const CustomerDashboard = () => {
                     ))}
                   </div>
 
-                  {/* Destination Info */}
-                  <div className="text-[11px] text-slate-500 pt-2 border-t border-slate-100 flex items-center justify-between">
-                    <span>
-                      Shipping to: {ord.shippingAddress?.fullName}, {ord.shippingAddress?.street},{' '}
-                      {ord.shippingAddress?.city}, {ord.shippingAddress?.state}{' '}
-                      {ord.shippingAddress?.zipCode}
+                  {/* Destination Info & Track Button */}
+                  <div className="text-[11px] text-slate-500 pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <span className="truncate">
+                      Shipping to: {ord.shippingAddress?.fullName}, {ord.shippingAddress?.city},{' '}
+                      {ord.shippingAddress?.state}
                     </span>
-                    <span className="text-secondary font-bold">Standard Carrier Tracking</span>
+                    <Link
+                      to={`/orders/${ord._id}`}
+                      className="px-3.5 py-1.5 bg-primary hover:bg-secondary text-white text-xs font-bold rounded-xl transition-colors shadow-sm inline-flex items-center gap-1.5 self-start sm:self-auto"
+                    >
+                      <Package className="w-3.5 h-3.5" />
+                      <span>Track Order</span>
+                    </Link>
                   </div>
                 </div>
               ))}

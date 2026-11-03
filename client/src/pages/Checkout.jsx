@@ -123,11 +123,17 @@ const Checkout = () => {
                   </div>
                 </div>
 
-                <div className="text-right">
+                <div className="text-right flex flex-col items-end">
                   <span className="inline-block px-2.5 py-0.5 bg-sky-50 text-sky-700 font-bold rounded-full mb-1 border border-sky-200">
                     Status: {ord.orderStatus}
                   </span>
                   <div className="font-black text-base text-primary">${ord.totalAmount.toFixed(2)}</div>
+                  <Link
+                    to={`/orders/${ord._id}`}
+                    className="mt-1 text-xs font-bold text-secondary hover:underline inline-flex items-center gap-1"
+                  >
+                    Track Package & Receipt →
+                  </Link>
                 </div>
               </div>
             ))}
@@ -326,6 +332,26 @@ const Checkout = () => {
                     <span className="text-[10px] text-slate-500 block uppercase">Expires</span>
                     <span>12 / 28</span>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Razorpay Test Mode Simulator Box */}
+            {paymentMethod === 'razorpay' && (
+              <div className="p-4 bg-sky-950 text-white rounded-2xl space-y-3 border border-sky-800 shadow-inner">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-extrabold text-cyan-400 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                    Razorpay Payment Gateway (Test Sandbox)
+                  </span>
+                  <span className="text-[10px] bg-sky-900 px-2 py-0.5 rounded font-mono text-sky-200">Test Mode</span>
+                </div>
+                <div className="text-xs text-sky-200">
+                  Test UPI (`success@razorpay`) and test netbanking enabled. No real money or credentials required.
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-sky-300 pt-1 border-t border-sky-800 font-mono">
+                  <span>Key ID: rzp_test_NEXSTORE99</span>
+                  <span>Instant Verification</span>
                 </div>
               </div>
             )}

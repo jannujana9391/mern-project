@@ -9,6 +9,7 @@ import orderRoutes from './routes/orderRoutes.js';
 import vendorRoutes from './routes/vendorRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -38,6 +39,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/vendor', vendorRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/admin', adminRoutes);
 
 // GET /api/health - Endpoint to verify backend and database status
 app.get('/api/health', (req, res) => {
@@ -66,6 +68,7 @@ app.get('/api/health', (req, res) => {
       products: 'Active & Verified (Phase 7)',
       categories: 'Active & Verified (Phase 7)',
       vendors: 'Active & Verified',
+      admin: 'Active & Verified (Phase 10)',
     },
   });
 });

@@ -26,3 +26,4 @@ router.put('/:id', protect, authorize('vendor', 'admin'), updateProduct);
 router.delete('/:id', protect, authorize('vendor', 'admin'), deleteProduct);
 
 export default router;
+

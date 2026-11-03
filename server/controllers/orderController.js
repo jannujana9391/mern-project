@@ -233,11 +233,19 @@ export const getOrderById = async (req, res) => {
       });
     }
 
-    // Ensure only the owner, or admin/vendor can see the order
-    if (
-      order.customer._id.toString() !== req.user._id.toString() &&
-      req.user.role !== 'admin'
-    ) {
+    // Check permissions: Owner, Admin, or Vendor of the order
+    let isAuthorized =
+      order.customer._id.toString() === req.user._id.toString() ||
+      req.user.role === 'admin';
+
+    if (!isAuthorized && req.user.role === 'vendor') {
+      const vendor = await Vendor.findOne({ user: req.user._id });
+      if (vendor && order.vendorName === vendor.storeName) {
+        isAuthorized = true;
+      }
+    }
+
+    if (!isAuthorized) {
       return res.status(403).json({
         success: false,
         message: 'Unauthorized access to this order.',
@@ -256,4 +264,60 @@ export const getOrderById = async (req, res) => {
     });
   }
 };
+
+/**
+ * @desc    Cancel an order (Customer can cancel if pending or processing)
+ * @route   PUT /api/orders/:id/cancel
+ * @access  Private (Customer / Admin)
+ */
+export const cancelOrder = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found.',
+      });
+    }
+
+    // Verify ownership
+    if (order.customer.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to cancel this order.',
+      });
+    }
+
+    if (order.orderStatus === 'shipped' || order.orderStatus === 'delivered') {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot cancel an order that is already ${order.orderStatus}.`,
+      });
+    }
+
+    if (order.orderStatus === 'cancelled') {
+      return res.status(400).json({
+        success: false,
+        message: 'This order is already cancelled.',
+      });
+    }
+
+    order.orderStatus = 'cancelled';
+    await order.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Order cancelled successfully.',
+      order,
+    });
+  } catch (error) {
+    console.error('[CancelOrder Error]:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to cancel order.',
+    });
+  }
+};
+
 

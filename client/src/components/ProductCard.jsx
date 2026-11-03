@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, ShoppingBag, Heart, Store, Eye, Check } from 'lucide-react';
+import { useWishlist } from '../context/WishlistContext';
 
-const ProductCard = ({ product, onAddToCart, onToggleWishlist, isWishlisted = false }) => {
+const ProductCard = ({ product, onAddToCart, onToggleWishlist, isWishlisted }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isAdded, setIsAdded] = useState(false);
+  const { isInWishlist, toggleWishlist } = useWishlist();
 
   const productId = product._id || product.id;
   const price = typeof product.price === 'number' ? product.price : Number(product.price || 0);
@@ -12,6 +14,8 @@ const ProductCard = ({ product, onAddToCart, onToggleWishlist, isWishlisted = fa
   const displayImage = product.image || (product.images && product.images[0]) || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=80';
   const vendorName = product.vendorName || (typeof product.vendor === 'object' ? product.vendor?.storeName : product.vendor) || 'Authorized Merchant';
   const reviewsCount = product.reviews !== undefined ? product.reviews : (product.reviewCount || 0);
+
+  const itemWishlisted = isWishlisted !== undefined ? isWishlisted : isInWishlist(productId);
 
   const discountPercent = originalPrice && originalPrice > price
     ? Math.round(((originalPrice - price) / originalPrice) * 100)
@@ -36,6 +40,16 @@ const ProductCard = ({ product, onAddToCart, onToggleWishlist, isWishlisted = fa
 
   const handleWishlist = (e) => {
     e.preventDefault();
+    toggleWishlist({
+      ...product,
+      id: productId,
+      _id: productId,
+      price,
+      originalPrice,
+      image: displayImage,
+      vendor: vendorName,
+      vendorName,
+    });
     if (onToggleWishlist) onToggleWishlist(product);
   };
 
@@ -75,13 +89,13 @@ const ProductCard = ({ product, onAddToCart, onToggleWishlist, isWishlisted = fa
           <button
             onClick={handleWishlist}
             className={`p-2.5 rounded-full shadow-md backdrop-blur-md transition-all duration-200 ${
-              isWishlisted
-                ? 'bg-rose-50 text-rose-500'
+              itemWishlisted
+                ? 'bg-rose-50 text-rose-500 scale-105'
                 : 'bg-white/90 hover:bg-white text-slate-600 hover:text-rose-500'
             }`}
-            title={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
+            title={itemWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
           >
-            <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-rose-500 text-rose-500' : ''}`} />
+            <Heart className={`w-4 h-4 ${itemWishlisted ? 'fill-rose-500 text-rose-500' : ''}`} />
           </button>
 
           <Link

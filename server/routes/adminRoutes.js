@@ -21,3 +21,4 @@ router.get('/orders', getAllOrdersAdmin);
 router.put('/vendors/:id/commission', updateVendorCommission);
 
 export default router;
+

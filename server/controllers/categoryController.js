@@ -1,4 +1,4 @@
-import Category from '../models/Category.js';
+r3import Category from '../models/Category.js';
 
 const initialCategories = [
   {

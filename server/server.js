@@ -7,6 +7,8 @@ import connectDB from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import vendorRoutes from './routes/vendorRoutes.js';
+import productRoutes from './routes/productRoutes.js';
+import categoryRoutes from './routes/categoryRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -34,6 +36,8 @@ app.use(
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/vendor', vendorRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/categories', categoryRoutes);
 
 // GET /api/health - Endpoint to verify backend and database status
 app.get('/api/health', (req, res) => {
@@ -59,7 +63,8 @@ app.get('/api/health', (req, res) => {
     services: {
       auth: 'Active & Verified',
       orders: 'Active & Verified',
-      products: 'Configured for Phase 7',
+      products: 'Active & Verified (Phase 7)',
+      categories: 'Active & Verified (Phase 7)',
       vendors: 'Active & Verified',
     },
   });

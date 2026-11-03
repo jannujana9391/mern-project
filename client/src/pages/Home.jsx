@@ -21,6 +21,7 @@ import ProductCard from '../components/ProductCard';
 import VendorSpotlight from '../components/VendorSpotlight';
 import Testimonials from '../components/Testimonials';
 import { checkHealth } from '../services/api';
+import api from '../services/api';
 import { useCart } from '../context/CartContext';
 
 const featuredProducts = [
@@ -129,6 +130,7 @@ const Home = () => {
   const [toastMessage, setToastMessage] = useState(null);
   const [wishlist, setWishlist] = useState([]);
   const [activeTab, setActiveTab] = useState('All');
+  const [productsList, setProductsList] = useState(featuredProducts);
 
   useEffect(() => {
     const fetchHealth = async () => {
@@ -141,7 +143,20 @@ const Home = () => {
         setHealthLoading(false);
       }
     };
+
+    const fetchLiveProducts = async () => {
+      try {
+        const res = await api.get('/products', { params: { limit: 12 } });
+        if (res.data?.products?.length > 0) {
+          setProductsList(res.data.products);
+        }
+      } catch (err) {
+        console.log('Using static featured products:', err.message);
+      }
+    };
+
     fetchHealth();
+    fetchLiveProducts();
   }, []);
 
   const handleAddToCart = (product) => {
@@ -172,8 +187,8 @@ const Home = () => {
 
   // Filter products by selected tab
   const filteredProducts = activeTab === 'All' 
-    ? featuredProducts 
-    : featuredProducts.filter((p) => p.category.toLowerCase().includes(activeTab.toLowerCase()));
+    ? productsList 
+    : productsList.filter((p) => (p.category || '').toLowerCase().includes(activeTab.toLowerCase()));
 
   return (
     <div className="space-y-12 sm:space-y-16 pb-16">

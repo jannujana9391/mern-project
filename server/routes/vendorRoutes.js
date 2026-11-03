@@ -20,3 +20,4 @@ router.get('/all', authorize('admin'), getAllVendors);
 router.put('/:id/status', authorize('admin'), updateVendorStatus);
 
 export default router;
+

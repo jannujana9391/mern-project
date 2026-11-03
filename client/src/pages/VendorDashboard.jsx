@@ -20,6 +20,13 @@ import {
   ArrowUpRight,
   Layers,
   BadgePercent,
+  Plus,
+  Edit2,
+  Trash2,
+  ExternalLink,
+  Image as ImageIcon,
+  Check,
+  X,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
@@ -46,6 +53,8 @@ const StatusBadge = ({ status }) => {
   );
 };
 
+const initialCategories = ['Electronics', 'Fashion', 'Home & Office', 'Beauty', 'Sports & Outdoors', 'Books & Stationery'];
+
 // ────────────────────────────────────────────────────────────────────────────────
 // Main Component
 // ────────────────────────────────────────────────────────────────────────────────
@@ -56,6 +65,8 @@ const VendorDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [vendorProfile, setVendorProfile] = useState(null);
   const [orders, setOrders] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState(initialCategories);
   const [stats, setStats] = useState({
     totalRevenue: 0,
     totalEarnings: 0,
@@ -67,21 +78,50 @@ const VendorDashboard = () => {
   const [updatingOrderId, setUpdatingOrderId] = useState(null);
   const [updateMsg, setUpdateMsg] = useState('');
 
-  // ── Fetch vendor profile & orders ──────────────────────────────────────────
+  // ── Product Modal State ────────────────────────────────────────────────────
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState('create'); // 'create' | 'edit'
+  const [currentProductId, setCurrentProductId] = useState(null);
+  const [productForm, setProductForm] = useState({
+    name: '',
+    category: 'Electronics',
+    price: '',
+    originalPrice: '',
+    stock: 10,
+    image: '',
+    description: '',
+    isFeatured: false,
+  });
+  const [submittingProduct, setSubmittingProduct] = useState(false);
+  const [deletingProductId, setDeletingProductId] = useState(null);
+
+  // ── Fetch vendor profile, orders, and products ─────────────────────────────
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const [profileRes, ordersRes] = await Promise.all([
+      const [profileRes, ordersRes, productsRes] = await Promise.all([
         api.get('/vendor/profile'),
         api.get('/orders/vendor-orders'),
+        api.get('/products/vendor/my-products'),
       ]);
       setVendorProfile(profileRes.data.vendor);
       setOrders(ordersRes.data.orders || []);
       setStats(ordersRes.data.stats || {});
+      setProducts(productsRes.data.products || []);
+
+      // Also try fetching category list
+      try {
+        const catRes = await api.get('/categories');
+        if (catRes.data?.categories?.length > 0) {
+          setCategories(catRes.data.categories.map((c) => c.name));
+        }
+      } catch (e) {
+        // use initialCategories
+      }
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || 'Failed to load vendor dashboard data.');
+      setError(err.message || 'Failed to load vendor dashboard data.');
     } finally {
       setLoading(false);
     }
@@ -100,14 +140,97 @@ const VendorDashboard = () => {
     try {
       await api.put(`/orders/${orderId}/status`, { status: newStatus });
       setUpdateMsg(`Order status updated to "${newStatus}" ✓`);
-      // Refresh orders list
       const ordersRes = await api.get('/orders/vendor-orders');
       setOrders(ordersRes.data.orders || []);
       setStats(ordersRes.data.stats || {});
     } catch (err) {
-      setUpdateMsg(err.response?.data?.message || 'Failed to update status.');
+      setUpdateMsg(err.message || 'Failed to update status.');
     } finally {
       setUpdatingOrderId(null);
+      setTimeout(() => setUpdateMsg(''), 4000);
+    }
+  };
+
+  // ── Open Add Product Modal ────────────────────────────────────────────────
+  const handleOpenAddModal = () => {
+    setModalMode('create');
+    setCurrentProductId(null);
+    setProductForm({
+      name: '',
+      category: categories[0] || 'Electronics',
+      price: '',
+      originalPrice: '',
+      stock: 15,
+      image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=80',
+      description: '',
+      isFeatured: false,
+    });
+    setIsProductModalOpen(true);
+  };
+
+  // ── Open Edit Product Modal ───────────────────────────────────────────────
+  const handleOpenEditModal = (prod) => {
+    setModalMode('edit');
+    setCurrentProductId(prod._id);
+    setProductForm({
+      name: prod.name || '',
+      category: prod.category || categories[0] || 'Electronics',
+      price: prod.price !== undefined ? String(prod.price) : '',
+      originalPrice: prod.originalPrice !== undefined ? String(prod.originalPrice) : '',
+      stock: prod.stock !== undefined ? prod.stock : 10,
+      image: prod.image || '',
+      description: prod.description || '',
+      isFeatured: Boolean(prod.isFeatured),
+    });
+    setIsProductModalOpen(true);
+  };
+
+  // ── Submit Add/Edit Product ───────────────────────────────────────────────
+  const handleProductSubmit = async (e) => {
+    e.preventDefault();
+    if (!productForm.name || !productForm.price || !productForm.category) {
+      setUpdateMsg('Please fill in product name, price, and category.');
+      return;
+    }
+
+    setSubmittingProduct(true);
+    setUpdateMsg('');
+    try {
+      if (modalMode === 'create') {
+        const res = await api.post('/products', productForm);
+        setUpdateMsg(`Product "${res.data.product?.name}" created successfully! ✓`);
+      } else {
+        const res = await api.put(`/products/${currentProductId}`, productForm);
+        setUpdateMsg(`Product "${res.data.product?.name}" updated successfully! ✓`);
+      }
+      setIsProductModalOpen(false);
+
+      // Refresh product list
+      const productsRes = await api.get('/products/vendor/my-products');
+      setProducts(productsRes.data.products || []);
+    } catch (err) {
+      setUpdateMsg(err.message || 'Failed to save product.');
+    } finally {
+      setSubmittingProduct(false);
+      setTimeout(() => setUpdateMsg(''), 4000);
+    }
+  };
+
+  // ── Delete Product ────────────────────────────────────────────────────────
+  const handleDeleteProduct = async (productId, productName) => {
+    if (!window.confirm(`Are you sure you want to delete "${productName}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    setDeletingProductId(productId);
+    try {
+      await api.delete(`/products/${productId}`);
+      setUpdateMsg(`Product "${productName}" removed from store. ✓`);
+      setProducts((prev) => prev.filter((p) => p._id !== productId));
+    } catch (err) {
+      setUpdateMsg(err.message || 'Failed to delete product.');
+    } finally {
+      setDeletingProductId(null);
       setTimeout(() => setUpdateMsg(''), 4000);
     }
   };
@@ -164,12 +287,22 @@ const VendorDashboard = () => {
 
   const tabs = [
     { id: 'overview',  label: 'Overview',  icon: BarChart2 },
-    { id: 'orders',    label: 'Orders',    icon: ShoppingBag },
+    { id: 'products',  label: 'Products',  icon: Package, count: products.length },
+    { id: 'orders',    label: 'Orders',    icon: ShoppingBag, count: stats.pendingOrders },
     { id: 'store',     label: 'Store Info', icon: Store },
   ];
 
   // ── Overview statistics cards data ────────────────────────────────────────
   const statCards = [
+    {
+      label: 'Store Products',
+      value: products.length,
+      icon: Package,
+      color: 'from-purple-500 to-indigo-600',
+      bg: 'bg-purple-50',
+      textColor: 'text-secondary',
+      sub: 'Active catalog listings',
+    },
     {
       label: 'Total Orders',
       value: orders.length,
@@ -177,7 +310,7 @@ const VendorDashboard = () => {
       color: 'from-blue-500 to-indigo-600',
       bg: 'bg-blue-50',
       textColor: 'text-blue-700',
-      sub: 'All incoming orders',
+      sub: 'All incoming customer orders',
     },
     {
       label: 'Pending / Processing',
@@ -186,24 +319,15 @@ const VendorDashboard = () => {
       color: 'from-amber-400 to-orange-500',
       bg: 'bg-amber-50',
       textColor: 'text-amber-700',
-      sub: 'Need your attention',
+      sub: 'Awaiting fulfillment',
     },
     {
-      label: 'Total Revenue',
-      value: `$${(stats.totalRevenue || 0).toFixed(2)}`,
-      icon: TrendingUp,
+      label: 'Net Earnings',
+      value: `$${(stats.totalEarnings || 0).toFixed(2)}`,
+      icon: DollarSign,
       color: 'from-emerald-400 to-green-600',
       bg: 'bg-emerald-50',
       textColor: 'text-emerald-700',
-      sub: 'Gross sales value',
-    },
-    {
-      label: 'Your Earnings',
-      value: `$${(stats.totalEarnings || 0).toFixed(2)}`,
-      icon: DollarSign,
-      color: 'from-secondary to-purple-700',
-      bg: 'bg-purple-50',
-      textColor: 'text-secondary',
       sub: 'After 10% platform fee',
     },
   ];
@@ -273,14 +397,21 @@ const VendorDashboard = () => {
             </div>
           </div>
 
-          {/* Quick CTA */}
-          <div className="shrink-0">
+          {/* Quick Actions */}
+          <div className="shrink-0 flex items-center gap-2">
+            <button
+              onClick={handleOpenAddModal}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-purple-700 text-white text-sm font-bold rounded-xl shadow-md transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Add Product
+            </button>
             <button
               onClick={fetchData}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-semibold rounded-xl transition-colors"
+              className="inline-flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-semibold rounded-xl transition-colors"
+              title="Refresh Dashboard"
             >
               <RefreshCw className="w-4 h-4" />
-              Refresh
             </button>
           </div>
         </div>
@@ -303,9 +434,11 @@ const VendorDashboard = () => {
               >
                 <Icon className="w-4 h-4" />
                 {tab.label}
-                {tab.id === 'orders' && stats.pendingOrders > 0 && (
-                  <span className="ml-1 px-1.5 py-0.5 bg-secondary text-white text-[10px] font-bold rounded-full">
-                    {stats.pendingOrders}
+                {tab.count !== undefined && tab.count > 0 && (
+                  <span className={`ml-1 px-1.5 py-0.5 text-[10px] font-bold rounded-full ${
+                    tab.id === 'orders' ? 'bg-secondary text-white' : 'bg-slate-100 text-slate-700'
+                  }`}>
+                    {tab.count}
                   </span>
                 )}
               </button>
@@ -366,6 +499,37 @@ const VendorDashboard = () => {
                   </div>
                 );
               })}
+            </div>
+
+            {/* Quick Catalog Banner */}
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-purple-50 rounded-2xl text-secondary">
+                  <Package className="w-8 h-8" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">Product Catalog Management</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    You currently have <strong>{products.length} products</strong> listed in the marketplace.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => setActiveTab('products')}
+                  className="px-4 py-2 border border-slate-200 hover:border-secondary text-slate-700 hover:text-secondary text-xs font-bold rounded-xl transition-colors"
+                >
+                  Manage Products
+                </button>
+                <button
+                  onClick={handleOpenAddModal}
+                  className="px-4 py-2 bg-secondary hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow-sm transition-colors flex items-center gap-1.5"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Add New Product
+                </button>
+              </div>
             </div>
 
             {/* Commission Breakdown */}
@@ -455,24 +619,186 @@ const VendorDashboard = () => {
               )}
             </div>
 
-            {/* Coming in Phase 7 notice */}
-            <div className="bg-gradient-to-r from-slate-800 to-secondary/80 rounded-2xl p-6 text-white">
-              <div className="flex items-center gap-3 mb-2">
-                <Layers className="w-6 h-6 text-cyan-400" />
-                <h3 className="font-bold text-lg">Phase 7 Preview: Product Management</h3>
-              </div>
-              <p className="text-slate-300 text-sm">
-                In the next phase you'll be able to add, edit, and delete your own products directly from this dashboard. 
-                Products will appear on the storefront and customers will be able to add them to their cart.
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {['Add Products', 'Edit Listings', 'Manage Inventory', 'Upload Images', 'Set Pricing'].map((f) => (
-                  <span key={f} className="px-3 py-1 bg-white/10 rounded-full text-xs font-semibold">
-                    {f}
+          </div>
+        )}
+
+        {/* ───── TAB: PRODUCTS (PHASE 7 CORE) ─────────────────────────────── */}
+        {activeTab === 'products' && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                  <span>Product Inventory</span>
+                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-700">
+                    {products.length} Items
                   </span>
-                ))}
+                </h2>
+                <p className="text-xs text-slate-500 mt-1">
+                  Manage your store catalog, pricing, inventory levels, and product visibility
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleOpenAddModal}
+                  className="px-4 py-2.5 bg-secondary hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow-md transition-colors flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add New Product
+                </button>
               </div>
             </div>
+
+            {/* Products Table */}
+            {products.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-4">
+                <Package className="w-16 h-16 text-slate-300 mx-auto" />
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800">No Products Listed Yet</h3>
+                  <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+                    Start selling to thousands of customers by adding your first product listing today!
+                  </p>
+                </div>
+                <button
+                  onClick={handleOpenAddModal}
+                  className="px-5 py-2.5 bg-secondary hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow transition-colors inline-flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Your First Product
+                </button>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 text-xs font-bold uppercase tracking-wider">
+                      <tr>
+                        <th className="py-3.5 px-4">Product</th>
+                        <th className="py-3.5 px-4">Category</th>
+                        <th className="py-3.5 px-4 text-right">Price</th>
+                        <th className="py-3.5 px-4 text-center">Stock</th>
+                        <th className="py-3.5 px-4 text-center">Rating</th>
+                        <th className="py-3.5 px-4 text-center">Status</th>
+                        <th className="py-3.5 px-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {products.map((p) => {
+                        const price = typeof p.price === 'number' ? p.price : Number(p.price || 0);
+                        const originalPrice = p.originalPrice ? Number(p.originalPrice) : null;
+                        return (
+                          <tr key={p._id} className="hover:bg-slate-50/80 transition-colors">
+                            {/* Product Info */}
+                            <td className="py-3.5 px-4">
+                              <div className="flex items-center gap-3">
+                                <img
+                                  src={p.image}
+                                  alt={p.name}
+                                  className="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0"
+                                  onError={(e) => {
+                                    e.target.src = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=80';
+                                  }}
+                                />
+                                <div className="min-w-0 max-w-xs">
+                                  <Link
+                                    to={`/products/${p._id}`}
+                                    className="font-bold text-slate-900 text-sm hover:text-secondary truncate block"
+                                    title={p.name}
+                                  >
+                                    {p.name}
+                                  </Link>
+                                  <span className="text-[11px] text-slate-400 line-clamp-1">
+                                    {p.description}
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Category */}
+                            <td className="py-3.5 px-4">
+                              <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold">
+                                {p.category}
+                              </span>
+                            </td>
+
+                            {/* Price */}
+                            <td className="py-3.5 px-4 text-right font-bold text-slate-900">
+                              <div>${price.toFixed(2)}</div>
+                              {originalPrice && originalPrice > price && (
+                                <div className="text-[10px] text-slate-400 line-through">
+                                  ${originalPrice.toFixed(2)}
+                                </div>
+                              )}
+                            </td>
+
+                            {/* Stock */}
+                            <td className="py-3.5 px-4 text-center">
+                              {p.stock > 5 ? (
+                                <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">
+                                  {p.stock} In Stock
+                                </span>
+                              ) : p.stock > 0 ? (
+                                <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800">
+                                  {p.stock} Low
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800">
+                                  Out of Stock
+                                </span>
+                              )}
+                            </td>
+
+                            {/* Rating */}
+                            <td className="py-3.5 px-4 text-center">
+                              <div className="flex items-center justify-center gap-1 text-xs">
+                                <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                                <span className="font-bold text-slate-800">{p.rating ? Number(p.rating).toFixed(1) : '5.0'}</span>
+                                <span className="text-slate-400">({p.reviews || 0})</span>
+                              </div>
+                            </td>
+
+                            {/* Status */}
+                            <td className="py-3.5 px-4 text-center">
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700">
+                                <CheckCircle className="w-3.5 h-3.5" /> Active
+                              </span>
+                            </td>
+
+                            {/* Actions */}
+                            <td className="py-3.5 px-4 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <Link
+                                  to={`/products/${p._id}`}
+                                  className="p-1.5 text-slate-500 hover:text-primary hover:bg-slate-100 rounded-lg transition-colors"
+                                  title="View on Storefront"
+                                >
+                                  <ExternalLink className="w-4 h-4" />
+                                </Link>
+                                <button
+                                  onClick={() => handleOpenEditModal(p)}
+                                  className="p-1.5 text-secondary hover:bg-purple-50 rounded-lg transition-colors"
+                                  title="Edit Product"
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteProduct(p._id, p.name)}
+                                  disabled={deletingProductId === p._id}
+                                  className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors disabled:opacity-50"
+                                  title="Delete Product"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -671,18 +997,193 @@ const VendorDashboard = () => {
                 />
               </div>
             )}
-
-            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm">
-              <p className="font-semibold mb-1">ℹ️ Store editing coming in Phase 7</p>
-              <p className="text-xs">
-                Full store profile editing (description, logo, banner upload) will be enabled in Phase 7 
-                along with product management features.
-              </p>
-            </div>
           </div>
         )}
 
       </div>
+
+      {/* ── Add / Edit Product Modal ────────────────────────────────────────── */}
+      {isProductModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto space-y-6">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div>
+                <h3 className="text-xl font-extrabold text-slate-900">
+                  {modalMode === 'create' ? 'Add New Product' : 'Edit Product'}
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Listing will be visible to all customers immediately upon saving.
+                </p>
+              </div>
+              <button
+                onClick={() => setIsProductModalOpen(false)}
+                className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleProductSubmit} className="space-y-4">
+              {/* Product Title */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Product Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={productForm.name}
+                  onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+                  placeholder="e.g. AeroPro Wireless Noise-Cancelling Headphones"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-secondary/40 font-medium"
+                />
+              </div>
+
+              {/* Category & Stock Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Category *
+                  </label>
+                  <select
+                    value={productForm.category}
+                    onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-secondary/40 font-medium"
+                  >
+                    {categories.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Stock Quantity *
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    value={productForm.stock}
+                    onChange={(e) => setProductForm({ ...productForm, stock: Number(e.target.value) })}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-secondary/40 font-medium"
+                  />
+                </div>
+              </div>
+
+              {/* Price and Original Price */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Selling Price ($) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    required
+                    value={productForm.price}
+                    onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
+                    placeholder="189.99"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-secondary/40 font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Original Price / MSRP ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={productForm.originalPrice}
+                    onChange={(e) => setProductForm({ ...productForm, originalPrice: e.target.value })}
+                    placeholder="249.99"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-secondary/40 font-medium"
+                  />
+                </div>
+              </div>
+
+              {/* Image URL & Preview */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Product Image URL
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={productForm.image}
+                    onChange={(e) => setProductForm({ ...productForm, image: e.target.value })}
+                    placeholder="https://images.unsplash.com/photo-..."
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-secondary/40 font-medium"
+                  />
+                </div>
+                {productForm.image && (
+                  <div className="mt-2 flex items-center gap-3 p-2 bg-slate-50 rounded-xl border border-slate-200">
+                    <img
+                      src={productForm.image}
+                      alt="Preview"
+                      className="w-12 h-12 object-cover rounded-lg border border-slate-200"
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                    <span className="text-xs text-slate-500 font-medium truncate">Image Preview Loaded</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Description *
+                </label>
+                <textarea
+                  rows="3"
+                  required
+                  value={productForm.description}
+                  onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
+                  placeholder="Highlight key product features, specifications, and materials..."
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-secondary/40 font-medium"
+                ></textarea>
+              </div>
+
+              {/* Featured Checkbox */}
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="isFeatured"
+                  checked={productForm.isFeatured}
+                  onChange={(e) => setProductForm({ ...productForm, isFeatured: e.target.checked })}
+                  className="w-4 h-4 rounded text-secondary focus:ring-secondary/40"
+                />
+                <label htmlFor="isFeatured" className="text-xs font-bold text-slate-700">
+                  Feature this product on homepage promotional highlights
+                </label>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsProductModalOpen(false)}
+                  className="px-5 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingProduct}
+                  className="px-6 py-2.5 bg-secondary hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow-md transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {submittingProduct && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{modalMode === 'create' ? 'Create Product Listing' : 'Save Changes'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

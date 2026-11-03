@@ -6,14 +6,31 @@ const ProductCard = ({ product, onAddToCart, onToggleWishlist, isWishlisted = fa
   const [isHovered, setIsHovered] = useState(false);
   const [isAdded, setIsAdded] = useState(false);
 
-  const discountPercent = product.originalPrice
-    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+  const productId = product._id || product.id;
+  const price = typeof product.price === 'number' ? product.price : Number(product.price || 0);
+  const originalPrice = product.originalPrice ? Number(product.originalPrice) : null;
+  const displayImage = product.image || (product.images && product.images[0]) || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=80';
+  const vendorName = product.vendorName || (typeof product.vendor === 'object' ? product.vendor?.storeName : product.vendor) || 'Authorized Merchant';
+  const reviewsCount = product.reviews !== undefined ? product.reviews : (product.reviewCount || 0);
+
+  const discountPercent = originalPrice && originalPrice > price
+    ? Math.round(((originalPrice - price) / originalPrice) * 100)
     : 0;
 
   const handleAdd = (e) => {
     e.preventDefault();
     setIsAdded(true);
-    if (onAddToCart) onAddToCart(product);
+    if (onAddToCart) {
+      onAddToCart({
+        ...product,
+        id: productId,
+        _id: productId,
+        vendor: vendorName,
+        vendorName: vendorName,
+        image: displayImage,
+        price,
+      });
+    }
     setTimeout(() => setIsAdded(false), 2000);
   };
 
@@ -30,21 +47,26 @@ const ProductCard = ({ product, onAddToCart, onToggleWishlist, isWishlisted = fa
     >
       {/* Top Media Container */}
       <div className="relative overflow-hidden bg-slate-100 h-56">
-        <img
-          src={product.image}
-          alt={product.name}
-          className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-500 ease-out"
-        />
+        <Link to={`/products/${productId}`} className="block w-full h-full">
+          <img
+            src={displayImage}
+            alt={product.name}
+            className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-500 ease-out"
+            onError={(e) => {
+              e.target.src = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=80';
+            }}
+          />
+        </Link>
 
         {/* Discount Badge */}
         {discountPercent > 0 && (
-          <span className="absolute top-3 left-3 bg-rose-500 text-white text-[11px] font-extrabold px-2.5 py-1 rounded-full shadow-md tracking-wider">
+          <span className="absolute top-3 left-3 bg-rose-500 text-white text-[11px] font-extrabold px-2.5 py-1 rounded-full shadow-md tracking-wider pointer-events-none">
             -{discountPercent}%
           </span>
         )}
 
         {/* Product Tag / Category */}
-        <span className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-md text-slate-800 text-[11px] font-semibold px-2.5 py-0.5 rounded-full shadow-sm border border-slate-100">
+        <span className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-md text-slate-800 text-[11px] font-semibold px-2.5 py-0.5 rounded-full shadow-sm border border-slate-100 pointer-events-none">
           {product.category}
         </span>
 
@@ -63,9 +85,9 @@ const ProductCard = ({ product, onAddToCart, onToggleWishlist, isWishlisted = fa
           </button>
 
           <Link
-            to="/products"
+            to={`/products/${productId}`}
             className="p-2.5 bg-white/90 hover:bg-white text-slate-600 hover:text-primary rounded-full shadow-md backdrop-blur-md transition-colors"
-            title="Quick View"
+            title="View Product Details"
           >
             <Eye className="w-4 h-4" />
           </Link>
@@ -78,23 +100,27 @@ const ProductCard = ({ product, onAddToCart, onToggleWishlist, isWishlisted = fa
           {/* Vendor Attribution Badge */}
           <div className="flex items-center space-x-1.5 text-xs text-secondary font-bold">
             <Store className="w-3.5 h-3.5" />
-            <span className="truncate hover:underline cursor-pointer" title={`Vendor: ${product.vendor}`}>
-              {product.vendor}
+            <span className="truncate hover:underline cursor-pointer" title={`Vendor: ${vendorName}`}>
+              {vendorName}
             </span>
           </div>
 
           {/* Product Title */}
-          <h3 className="font-bold text-slate-900 text-sm line-clamp-2 leading-snug group-hover:text-secondary transition-colors">
-            {product.name}
-          </h3>
+          <Link to={`/products/${productId}`} className="block">
+            <h3 className="font-bold text-slate-900 text-sm line-clamp-2 leading-snug group-hover:text-secondary transition-colors">
+              {product.name}
+            </h3>
+          </Link>
 
           {/* Ratings & Reviews */}
           <div className="flex items-center space-x-2 text-xs pt-0.5">
             <div className="flex items-center space-x-1 text-amber-500">
               <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-              <span className="font-extrabold text-slate-900">{product.rating}</span>
+              <span className="font-extrabold text-slate-900">
+                {product.rating ? Number(product.rating).toFixed(1) : '5.0'}
+              </span>
             </div>
-            <span className="text-slate-400">({product.reviews} reviews)</span>
+            <span className="text-slate-400">({reviewsCount} reviews)</span>
           </div>
         </div>
 
@@ -102,10 +128,10 @@ const ProductCard = ({ product, onAddToCart, onToggleWishlist, isWishlisted = fa
         <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
           <div>
             <div className="flex items-baseline space-x-1.5">
-              <span className="text-xl font-extrabold text-primary">${product.price.toFixed(2)}</span>
-              {product.originalPrice && (
+              <span className="text-xl font-extrabold text-primary">${price.toFixed(2)}</span>
+              {originalPrice && originalPrice > price && (
                 <span className="text-xs text-slate-400 line-through">
-                  ${product.originalPrice.toFixed(2)}
+                  ${originalPrice.toFixed(2)}
                 </span>
               )}
             </div>
@@ -140,4 +166,3 @@ const ProductCard = ({ product, onAddToCart, onToggleWishlist, isWishlisted = fa
 };
 
 export default ProductCard;
-

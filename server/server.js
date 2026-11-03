@@ -6,6 +6,7 @@ import mongoose from 'mongoose';
 import connectDB from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
+import vendorRoutes from './routes/vendorRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -32,6 +33,7 @@ app.use(
 // Mount API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/vendor', vendorRoutes);
 
 // GET /api/health - Endpoint to verify backend and database status
 app.get('/api/health', (req, res) => {
@@ -58,6 +60,7 @@ app.get('/api/health', (req, res) => {
       auth: 'Active & Verified',
       orders: 'Active & Verified',
       products: 'Configured for Phase 7',
+      vendors: 'Active & Verified',
     },
   });
 });

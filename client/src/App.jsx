@@ -8,6 +8,7 @@ import Products from './pages/Products';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import CustomerDashboard from './pages/CustomerDashboard';
+import VendorDashboard from './pages/VendorDashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import About from './pages/About';
@@ -48,6 +49,7 @@ function App() {
               <Route path="cart" element={<Cart />} />
               <Route path="checkout" element={<Checkout />} />
               <Route path="dashboard" element={<CustomerDashboard />} />
+              <Route path="vendor-dashboard" element={<VendorDashboard />} />
               <Route path="login" element={<Login />} />
               <Route path="register" element={<Register />} />
               <Route path="about" element={<About />} />

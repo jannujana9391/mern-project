@@ -19,7 +19,7 @@ import { useCart } from '../context/CartContext';
 
 const Navbar = () => {
   const { user, isAuthenticated, logout } = useAuth();
-  const { totalItems } = useCart();
+  const { totalItems, subtotal } = useCart();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -63,7 +63,7 @@ const Navbar = () => {
               </Link>
             )}
             {isAuthenticated && (
-              <Link to="/dashboard" className="text-accent flex items-center gap-1 hover:underline">
+              <Link to={user?.role === 'vendor' ? '/vendor-dashboard' : user?.role === 'admin' ? '/admin-dashboard' : '/dashboard'} className="text-accent flex items-center gap-1 hover:underline">
                 <Sparkles className="w-3.5 h-3.5" /> Authenticated as {user?.name}
               </Link>
             )}
@@ -179,14 +179,38 @@ const Navbar = () => {
                     </div>
 
                     <div className="py-1">
-                      <Link
-                        to="/dashboard"
-                        onClick={() => setIsUserDropdownOpen(false)}
-                        className="px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-purple-50 hover:text-secondary flex items-center space-x-2"
-                      >
-                        <LayoutDashboard className="w-4 h-4" />
-                        <span>Customer Dashboard</span>
-                      </Link>
+                      {user.role !== 'vendor' && (
+                        <Link
+                          to="/dashboard"
+                          onClick={() => setIsUserDropdownOpen(false)}
+                          className="px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-purple-50 hover:text-secondary flex items-center space-x-2"
+                        >
+                          <LayoutDashboard className="w-4 h-4" />
+                          <span>Customer Dashboard</span>
+                        </Link>
+                      )}
+
+                      {user.role === 'vendor' && (
+                        <Link
+                          to="/vendor-dashboard"
+                          onClick={() => setIsUserDropdownOpen(false)}
+                          className="px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-purple-50 hover:text-secondary flex items-center space-x-2"
+                        >
+                          <Store className="w-4 h-4" />
+                          <span>Vendor Dashboard</span>
+                        </Link>
+                      )}
+
+                      {user.role === 'admin' && (
+                        <Link
+                          to="/admin-dashboard"
+                          onClick={() => setIsUserDropdownOpen(false)}
+                          className="px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-rose-50 hover:text-rose-700 flex items-center space-x-2"
+                        >
+                          <ShieldCheck className="w-4 h-4" />
+                          <span>Admin Dashboard</span>
+                        </Link>
+                      )}
 
                       <Link
                         to="/cart"
@@ -325,12 +349,12 @@ const Navbar = () => {
             </Link>
             {isAuthenticated && (
               <Link
-                to="/dashboard"
+                to={user?.role === 'vendor' ? '/vendor-dashboard' : user?.role === 'admin' ? '/admin-dashboard' : '/dashboard'}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 flex items-center space-x-2"
               >
                 <LayoutDashboard className="w-4 h-4 text-secondary" />
-                <span>Customer Dashboard</span>
+                <span>{user?.role === 'vendor' ? 'Vendor Dashboard' : user?.role === 'admin' ? 'Admin Dashboard' : 'Customer Dashboard'}</span>
               </Link>
             )}
           </div>

@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import axios from 'axios';
+import api from '../services/api';
 
 const Checkout = () => {
   const { cartItems, subtotal, tax, shipping, grandTotal, clearCart } = useCart();
@@ -63,7 +63,7 @@ const Checkout = () => {
         },
       };
 
-      const res = await axios.post('/api/orders', payload);
+      const res = await api.post('/orders', payload);
 
       if (res.data?.success) {
         setCompletedOrders(res.data.orders);
@@ -72,7 +72,7 @@ const Checkout = () => {
     } catch (err) {
       console.error('Order placement error:', err);
       setErrorMsg(
-        err.response?.data?.message || err.message || 'Payment processing failed. Please try again.'
+        err.message || 'Payment processing failed. Please try again.'
       );
     } finally {
       setLoading(false);

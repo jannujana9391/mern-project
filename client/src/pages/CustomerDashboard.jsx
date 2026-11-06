@@ -15,7 +15,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import axios from 'axios';
+import api from '../services/api';
 
 const CustomerDashboard = () => {
   const { user } = useAuth();
@@ -27,7 +27,7 @@ const CustomerDashboard = () => {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const res = await axios.get('/api/orders/my-orders');
+        const res = await api.get('/orders/my-orders');
         if (res.data?.success) {
           setOrders(res.data.orders);
         }

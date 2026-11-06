@@ -16,9 +16,11 @@ export const AuthProvider = ({ children }) => {
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       localStorage.setItem('nexstore_token', token);
+      localStorage.setItem('token', token);
     } else {
       delete axios.defaults.headers.common['Authorization'];
       localStorage.removeItem('nexstore_token');
+      localStorage.removeItem('token');
     }
   }, [token]);
 
@@ -56,6 +58,7 @@ export const AuthProvider = ({ children }) => {
       setToken(receivedToken);
       setUser(receivedUser);
       localStorage.setItem('nexstore_token', receivedToken);
+      localStorage.setItem('token', receivedToken);
       localStorage.setItem('nexstore_user', JSON.stringify(receivedUser));
       return { success: true, user: receivedUser };
     }
@@ -72,6 +75,7 @@ export const AuthProvider = ({ children }) => {
       setToken(receivedToken);
       setUser(receivedUser);
       localStorage.setItem('nexstore_token', receivedToken);
+      localStorage.setItem('token', receivedToken);
       localStorage.setItem('nexstore_user', JSON.stringify(receivedUser));
       return { success: true, user: receivedUser };
     }
@@ -85,6 +89,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setToken(null);
     localStorage.removeItem('nexstore_token');
+    localStorage.removeItem('token');
     localStorage.removeItem('nexstore_user');
     delete axios.defaults.headers.common['Authorization'];
   };

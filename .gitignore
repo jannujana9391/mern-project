@@ -6,6 +6,10 @@ server/node_modules/
 # Production build outputs
 client/dist/
 
+# Local MongoDB data
+mongodb_data/
+server/data/
+
 # Environment files
 server/.env
 .env
